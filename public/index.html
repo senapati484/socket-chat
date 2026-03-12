@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Socket Chat - Real-time Messaging</title>
+  <style>
+    /* Import modern fonts from Google Fonts */
+    @import url('https://fonts.googleapis.com/css2?family=Interstate:wght@400;700&family=IBM+Plex+Mono:wght@400;500&family=Lora:wght@400;600&display=swap');
+
+    /* Reset default browser styles */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    /* Body styling - minimalist grayscale design */
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background: #f5f5f5;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 10px;
+    }
+
+    /* Main container - bigger and minimalist */
+    .container {
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+      width: 100%;
+      max-width: 800px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      height: 85vh;
+      max-height: 900px;
+    }
+
+    /* Header - minimal and clean */
+    .header {
+      background: #000;
+      color: white;
+      padding: 16px 20px;
+      text-align: center;
+      border-bottom: 1px solid #e0e0e0;
+    }
+
+    .header h1 {
+      font-family: 'Lora', serif;
+      font-size: 28px;
+      font-weight: 600;
+      margin-bottom: 4px;
+      letter-spacing: 0.5px;
+    }
+
+    .header p {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 11px;
+      opacity: 0.6;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+
+    .room-info {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 12px;
+      margin-top: 8px;
+      opacity: 0.5;
+    }
+
+    /* Join room section */
+    .join-section {
+      padding: 30px;
+      background: white;
+      border-bottom: 1px solid #e0e0e0;
+    }
+
+    .join-section input {
+      width: 100%;
+      padding: 12px;
+      margin-bottom: 12px;
+      border: 1px solid #d0d0d0;
+      border-radius: 4px;
+      font-size: 14px;
+      font-family: 'IBM Plex Mono', monospace;
+      background: white;
+      color: #000;
+      transition: border-color 0.2s;
+    }
+
+    .join-section input:focus {
+      outline: none;
+      border-color: #000;
+    }
+
+    .join-section button {
+      width: 100%;
+      padding: 12px;
+      background: #000;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      font-size: 14px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      cursor: pointer;
+      font-weight: 500;
+      transition: background 0.2s;
+    }
+
+    .join-section button:hover {
+      background: #333;
+    }
+
+    /* Chat display area - spacious and minimal */
+    .chat-area {
+      flex: 1;
+      overflow-y: auto;
+      padding: 20px;
+      background: white;
+      display: none;
+      flex-direction: column;
+    }
+
+    .chat-area.active {
+      display: flex;
+    }
+
+    .chat-messages {
+      flex: 1;
+      overflow-y: auto;
+      margin-bottom: 15px;
+    }
+
+    /* Message styling - clean and minimal */
+    .message {
+      margin-bottom: 10px;
+      padding: 10px 12px;
+      border-radius: 4px;
+      max-width: 80%;
+      word-wrap: break-word;
+      font-size: 14px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    }
+
+    .message.own {
+      background: #000;
+      color: white;
+      margin-left: auto;
+    }
+
+    .message.other {
+      background: #e8e8e8;
+      color: #000;
+      margin-right: auto;
+    }
+
+    .message.system {
+      background: transparent;
+      color: #666;
+      text-align: center;
+      max-width: 100%;
+      margin-left: 0;
+      margin-right: 0;
+      font-style: italic;
+      font-size: 12px;
+      padding: 8px 0;
+      border-top: 1px solid #e0e0e0;
+      border-bottom: 1px solid #e0e0e0;
+    }
+
+    .message-user {
+      font-family: 'IBM Plex Mono', monospace;
+      font-weight: 500;
+      font-size: 11px;
+      opacity: 0.6;
+      margin-bottom: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    /* File message styling */
+    .message.file {
+      padding: 12px;
+      border: 1px solid #d0d0d0;
+    }
+
+    .message.file.own {
+      background: #000;
+      border-color: #000;
+      color: white;
+    }
+
+    .message.file.other {
+      background: #f9f9f9;
+      border-color: #d0d0d0;
+      color: #000;
+    }
+
+    .file-content {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .file-info {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .file-name {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 13px;
+      font-weight: 500;
+      word-break: break-all;
+    }
+
+    .file-size {
+      font-size: 11px;
+      opacity: 0.7;
+    }
+
+    .file-download-btn {
+      padding: 6px 12px;
+      background: white;
+      color: #000;
+      border: 1px solid #d0d0d0;
+      border-radius: 3px;
+      font-size: 12px;
+      cursor: pointer;
+      transition: background 0.2s;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    .message.file.own .file-download-btn {
+      background: #333;
+      color: white;
+      border-color: #333;
+    }
+
+    .file-download-btn:hover {
+      background: #f0f0f0;
+    }
+
+    .message.file.own .file-download-btn:hover {
+      background: #555;
+    }
+
+    /* Input section - controls area */
+    .input-controls {
+      padding: 12px;
+      background: white;
+      border-top: 1px solid #e0e0e0;
+      display: none;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .input-controls.active {
+      display: flex;
+    }
+
+    .input-row {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .input-controls input[type="text"] {
+      flex: 1;
+      padding: 10px;
+      border: 1px solid #d0d0d0;
+      border-radius: 4px;
+      font-size: 14px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: white;
+      color: #000;
+      transition: border-color 0.2s;
+    }
+
+    .input-controls input[type="text"]:focus {
+      outline: none;
+      border-color: #000;
+    }
+
+    .input-controls input[type="file"] {
+      font-size: 12px;
+      cursor: pointer;
+    }
+
+    .input-controls button {
+      padding: 10px 16px;
+      background: #000;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 500;
+      transition: background 0.2s;
+      white-space: nowrap;
+    }
+
+    .input-controls button:hover {
+      background: #333;
+    }
+
+    .leave-button {
+      width: 100%;
+      padding: 10px;
+      background: #666;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      margin-top: 8px;
+      font-size: 13px;
+      font-weight: 500;
+      transition: background 0.2s;
+    }
+
+    .leave-button:hover {
+      background: #555;
+    }
+
+    /* Scrollbar styling */
+    .chat-messages::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    .chat-messages::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    .chat-messages::-webkit-scrollbar-thumb {
+      background: #ccc;
+      border-radius: 3px;
+    }
+
+    .chat-messages::-webkit-scrollbar-thumb:hover {
+      background: #999;
+    }
+  </style>
+</head>
+<body>
+  <!-- Main container that holds the entire chat application -->
+  <div class="container">
+    <!-- Header section showing app title and room info -->
+    <div class="header">
+      <h1>Socket Chat</h1>
+      <p>Real-time Chat & File Sharing</p>
+      <div class="room-info" id="roomInfo"></div>
+    </div>
+
+    <!-- Join room section - shown before user joins a room -->
+    <div class="join-section" id="joinSection">
+      <input id="username" placeholder="Enter your name" />
+      <input id="room" placeholder="Enter room name" />
+      <button onclick="joinRoom()">Join Chat Room</button>
+    </div>
+
+    <!-- Chat display area - shows all messages in the room -->
+    <div class="chat-area" id="chatArea">
+      <!-- Chat messages container (grows/shrinks with content) -->
+      <div class="chat-messages" id="chat"></div>
+      <!-- Leave room button -->
+      <button class="leave-button" onclick="leaveRoom()">Leave Room</button>
+    </div>
+
+    <!-- Input controls section - message and file input -->
+    <div class="input-controls" id="inputControls">
+      <!-- Row 1: Message input and Send button -->
+      <div class="input-row">
+        <input id="message" type="text" placeholder="Type your message..." />
+        <button onclick="sendMessage()">Send</button>
+      </div>
+      <!-- Row 2: File input and label -->
+      <div class="input-row">
+        <label style="font-size: 12px; color: #666; cursor: pointer;">
+          📎 Share File:
+          <input id="fileInput" type="file" onchange="sendFile()" style="display: none;" />
+        </label>
+        <span id="fileName" style="font-size: 12px; color: #999;"></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Include Socket.IO library from CDN -->
+  <script src="/socket.io/socket.io.js"></script>
+  <!-- Include our custom chat application logic -->
+  <script src="script.js"></script>
+</body>
+</html>
